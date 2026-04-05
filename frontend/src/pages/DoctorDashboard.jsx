@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { 
   Stethoscope, 
   Users, 
+  User,
   Calendar, 
   Clock, 
   FileText, 
@@ -18,7 +19,7 @@ import {
 import axios from 'axios';
 import io from 'socket.io-client';
 
-const socket = io('http://localhost:5000');
+const socket = io('');
 
 const DoctorDashboard = () => {
   const { user, logout } = useAuth();
@@ -53,7 +54,7 @@ const DoctorDashboard = () => {
     setError('');
     setSelectedPatient(patientId);
     try {
-      const res = await axios.get(`http://localhost:5000/api/records/patient/${patientId}`, {
+      const res = await axios.get(`/api/records/patient/${patientId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       setPatientRecords(res.data);
@@ -68,7 +69,7 @@ const DoctorDashboard = () => {
   const handleAddRecord = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/records', {
+      await axios.post('/api/records', {
         patient: selectedPatient,
         ...newNote
       }, {
@@ -91,7 +92,7 @@ const DoctorDashboard = () => {
             <div className="bg-sky-600 p-2 rounded-xl text-white shadow-lg shadow-sky-100">
                <Stethoscope size={24} />
             </div>
-            <h1 className="font-black text-xl tracking-tight text-slate-800">DR. CONNECT</h1>
+            <h1 className="font-black text-xl tracking-tight text-slate-800">MEDI-DOCTOR</h1>
           </div>
         </div>
 
@@ -294,3 +295,4 @@ const DoctorDashboard = () => {
 };
 
 export default DoctorDashboard;
+

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import axios from 'axios';
 import { 
   ShieldCheck, 
   Users, 
@@ -15,28 +16,46 @@ import {
   Search,
   Bell
 } from 'lucide-react';
-import axios from 'axios';
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
   const [auditLogs, setAuditLogs] = useState([]);
   const [activeUsers, setActiveUsers] = useState([]);
-  const [stats, setStats] = useState({ activePatients: 450, verifiedDoctors: 82, totalConsultations: 1240, uptime: '99.9%' });
-  const [view, setView] = useState('overview'); // overview, audit, users
+  const [stats, setStats] = useState({ activePatients: 0, verifiedDoctors: 0, totalConsultations: 0 });
+  const [view, setView] = useState('overview');
+  const [apiError, setApiError] = useState('');
 
-  useEffect(() => {
-    // Mocking statistical and audit data
-    setAuditLogs([
-      { _id: '1', user: 'Dr. Smith', action: 'view_record', details: 'Accessed John Doe PHI', timestamp: new Date(), ip: '192.168.1.1' },
-      { _id: '2', user: 'Patient John', action: 'login', details: 'Successful login', timestamp: new Date(Date.now() - 3600000), ip: '192.168.1.5' },
-      { _id: '3', user: 'Admin Sarah', action: 'verify_doctor', details: 'Verified Dr. Allen', timestamp: new Date(Date.now() - 7200000), ip: '192.168.1.10' },
-    ]);
-    
-    setActiveUsers([
-      { _id: 'd1', firstName: 'Alice', lastName: 'Allen', role: 'doctor', isVerified: false, email: 'alice@med.com' },
-      { _id: 'p1', firstName: 'Bob', lastName: 'Brown', role: 'patient', isVerified: true, email: 'bob@gmail.com' },
-    ]);
-  }, []);
+  const authHeader = { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } };
+
+  const fetchData = async () => {
+    try {
+      const [usersRes, logsRes] = await Promise.all([
+        axios.get('/api/admin/users', authHeader),
+        axios.get('/api/admin/audit-logs', authHeader),
+      ]);
+      const users = usersRes.data;
+      setActiveUsers(users);
+      setAuditLogs(logsRes.data);
+      setStats({
+        activePatients: users.filter(u => u.role === 'patient').length,
+        verifiedDoctors: users.filter(u => u.role === 'doctor' && u.isVerified).length,
+        totalConsultations: logsRes.data.filter(l => l.action === 'view_record').length,
+      });
+    } catch (err) {
+      setApiError('Could not load data. Is the server running and MongoDB connected?');
+    }
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const handleVerify = async (userId, isVerified) => {
+    try {
+      await axios.put(`/api/admin/users/${userId}/verify`, { isVerified }, authHeader);
+      fetchData();
+    } catch {
+      alert('Verification failed.');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -46,7 +65,7 @@ const AdminDashboard = () => {
           <div className="bg-sky-500 p-2 rounded-lg text-white">
              <ShieldCheck size={24} />
           </div>
-          <h1 className="font-black text-xl tracking-tighter">MEDI-ADMIN <span className="text-sky-500">PRO</span></h1>
+          <h1 className="font-black text-xl tracking-tighter">MEDI-ADMIN</h1>
         </div>
         
         <div className="flex items-center gap-6">

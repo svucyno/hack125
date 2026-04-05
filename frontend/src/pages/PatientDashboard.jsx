@@ -19,11 +19,12 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import io from 'socket.io-client';
 
-const socket = io('http://localhost:5000');
+const socket = io('');
 
 const PatientDashboard = () => {
   const { user, logout } = useAuth();
   const { 
+    lang, setLang, languages,
     isListening, 
     transcript, 
     aiResponse, 
@@ -36,9 +37,15 @@ const PatientDashboard = () => {
   const [sosActive, setSosActive] = useState(false);
 
   useEffect(() => {
+    const handleVoiceSOS = () => triggerSOS();
+    window.addEventListener('voice_sos', handleVoiceSOS);
+    return () => window.removeEventListener('voice_sos', handleVoiceSOS);
+  }, [user]);
+
+  useEffect(() => {
     const fetchRecords = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/records/my', {
+        const res = await axios.get('/api/records/my', {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
         setRecords(res.data);
@@ -68,10 +75,17 @@ const PatientDashboard = () => {
           <div className="bg-sky-600 p-2 rounded-lg">
             <Heart className="text-white fill-current" size={24} />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-800 uppercase">MEDI-CONNECT</h1>
+          <h1 className="text-xl font-bold tracking-tight text-slate-800 uppercase">MEDI-PATIENT</h1>
         </div>
         
         <div className="flex items-center gap-6">
+          <div className="flex gap-1">
+            {Object.keys(languages).map(l => (
+              <button key={l} onClick={() => setLang(l)} className={`px-2 py-0.5 rounded text-[9px] font-black uppercase transition-all ${lang === l ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>
+                {languages[l].name.slice(0,3)}
+              </button>
+            ))}
+          </div>
           <div className="flex items-center gap-3 pr-6 border-r border-slate-200">
             <div className="text-right hidden sm:block">
               <p className="text-sm font-semibold text-slate-900">{user?.firstName} {user?.lastName}</p>
@@ -101,7 +115,7 @@ const PatientDashboard = () => {
             
             <div className="relative z-10">
               <span className="bg-sky-100 text-sky-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">AI Symptom Assistant</span>
-              <h2 className="text-3xl font-bold mt-4 text-slate-800">How are you feeling today?</h2>
+              <h2 className="text-3xl font-bold mt-4 text-slate-800">{languages[lang].welcome}</h2>
               <p className="text-slate-500 mt-2">Speak naturally or type your symptoms to receive immediate guidance.</p>
               
               <div className="mt-10 flex flex-col items-center">
@@ -233,3 +247,4 @@ const PatientDashboard = () => {
 };
 
 export default PatientDashboard;
+
